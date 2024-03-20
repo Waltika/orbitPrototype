@@ -3,8 +3,11 @@ export class Annotated {
     constructor(url) {
         this.url = url;
     }
+    group() {
+        return this.url.origin;
+    }
     key() {
-        return "todo";
+        return this.url.pathname;
     }
 }
 //# sourceMappingURL=Annotated.js.map

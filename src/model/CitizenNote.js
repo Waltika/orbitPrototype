@@ -1,9 +1,15 @@
 export class CitizenNote {
     constructor(reference, note) {
-        this.reference = reference;
-        this.note = note;
+        this._reference = reference;
+        this._note = note;
     }
-    reference;
-    note;
+    get reference() {
+        return this._reference;
+    }
+    get note() {
+        return this._note;
+    }
+    _reference;
+    _note;
 }
 //# sourceMappingURL=CitizenNote.js.map

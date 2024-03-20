@@ -5,7 +5,11 @@ export class Annotated {
         this.url = url;
     }
 
+    group(): string {
+        return this.url.origin;
+    }
+
     key(): string {
-        return "todo";
+        return this.url.pathname;
     }
 }

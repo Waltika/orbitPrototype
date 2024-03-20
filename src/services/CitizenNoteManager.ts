@@ -2,18 +2,22 @@ import {CitizenNote} from "../model/CitizenNote";
 import {CitizenNotesStore} from "../dataAccess/CitizenNotesStore";
 import {Annotated} from "../model/Annotated";
 
-class CitizenNoteManager {
+export class CitizenNoteManager {
     constructor(store: CitizenNotesStore) {
         this.store = store;
     }
 
-    findCitizenNote(annotated: Annotated, note : CitizenNote) {
+    async findCitizenNote(annotated: Annotated, note: CitizenNote) {
         return this.store.findCitizenNote(annotated, note);
     }
 
-    addCitizenNote(annotated: Annotated, note: CitizenNote) {
-        this.store.addCitizenNote(annotated, note);
+    async addCitizenNote(annotated: Annotated, note: CitizenNote) {
+        await this.store.addCitizenNote(annotated, note);
     }
 
     private store: CitizenNotesStore;
+
+    async logContent() {
+        await this.store.logContent();
+    }
 }

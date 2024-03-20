@@ -1,9 +1,17 @@
 export class CitizenNote {
     constructor(reference: string, note: string) {
-        this.reference = reference;
-        this.note = note;
+        this._reference = reference;
+        this._note = note;
     }
 
-    reference: string;
-    note: string;
+    get reference() {
+        return this._reference;
+    }
+
+    get note() {
+        return this._note;
+    }
+
+    private _reference: string;
+    private _note: string;
 }

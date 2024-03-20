@@ -62,20 +62,50 @@ export class CitizenNotesStore {
         });
     }
 
+    async logContent() {
+        for await (const record of this.index.iterator()) {
+            console.log("index element:");
+            console.log(record);
+            let groupDB = await this.findOrCreateGroupDB(record.value.doc.toString());
+            for await (const groupRecord of groupDB.iterator()) {
+                let groupID = groupDB._id;
+                console.log(`groupDB element: for ${groupID}`);
+                console.log(groupRecord);
+            }
+        }
+    }
+
     async findCitizenNote(annotated: Annotated, note: CitizenNote) {
-        return null; // TODO: Implement
+        let groupDBHash: string = await this.findGroupDB(annotated.group());
+        if (groupDBHash === undefined) {
+            return null;
+        } else {
+            let groupDB = await this.orbitDB.open(groupDBHash, {type: 'documents'});
+            return groupDB.get(note.reference);
+        }
+
     }
 
     async addCitizenNote(annotated: Annotated, note: CitizenNote) {
-        let hash = await this.index.get(annotated.key());
-        let db;
-        if (hash === undefined) {
-            db = await this.orbitDB.open(annotated.key(), {type: 'documents'});
-            this.index.put({_id: annotated.key(), doc: db.address});
-        } else {
-            db = await this.orbitDB.open(hash, {type: 'documents'});
-        }
-        db.put({_id: note.reference, doc: note.note});
+        let groupID = annotated.group();
+        let groupDB = await this.findOrCreateGroupDB(groupID);
+        groupDB.put({_id: annotated.key(), doc: note});
     }
 
+    private async findOrCreateGroupDB(groupID: string) {
+        let groupDB;
+        let groupDBHash: string = await this.findGroupDB(groupID);
+        if (groupDBHash === undefined) {
+            groupDB = await this.orbitDB.open(groupID, {type: 'documents'});
+            this.index.put({_id: groupID, doc: groupDB.address});
+        } else {
+            groupDB = await this.orbitDB.open(groupDBHash, {type: 'documents'});
+        }
+        return groupDB;
+    }
+
+    private async findGroupDB(groupID: string) {
+        let groupDBHash: string = await this.index.get(groupID);
+        return groupDBHash;
+    }
 }

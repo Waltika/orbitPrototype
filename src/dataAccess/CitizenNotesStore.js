@@ -51,20 +51,48 @@ export class CitizenNotesStore {
             replicate: true,
         });
     }
-    async findCitizenNote(annotated, note) {
-        return null; // TODO: Implement
+    async logContent() {
+        for await (const record of this.index.iterator()) {
+            console.log("index element:");
+            console.log(record);
+            let groupDB = await this.findOrCreateGroupDB(record.value.doc.toString());
+            for await (const groupRecord of groupDB.iterator()) {
+                let groupID = groupDB._id;
+                console.log(`groupDB element: for ${groupID}`);
+                console.log(groupRecord);
+            }
+        }
     }
-    async addCitizenNote(annotated, note) {
-        let hash = await this.index.get(annotated.key());
-        let db;
-        if (hash === undefined) {
-            db = await this.orbitDB.open(annotated.key(), { type: 'documents' });
-            this.index.put({ _id: annotated.key(), doc: db.address });
+    async findCitizenNote(annotated, note) {
+        let groupDBHash = await this.findGroupDB(annotated.group());
+        if (groupDBHash === undefined) {
+            return null;
         }
         else {
-            db = await this.orbitDB.open(hash, { type: 'documents' });
+            let groupDB = await this.orbitDB.open(groupDBHash, { type: 'documents' });
+            return groupDB.get(note.reference);
         }
-        db.put({ _id: note.reference, doc: note.note });
+    }
+    async addCitizenNote(annotated, note) {
+        let groupID = annotated.group();
+        let groupDB = await this.findOrCreateGroupDB(groupID);
+        groupDB.put({ _id: annotated.key(), doc: note });
+    }
+    async findOrCreateGroupDB(groupID) {
+        let groupDB;
+        let groupDBHash = await this.findGroupDB(groupID);
+        if (groupDBHash === undefined) {
+            groupDB = await this.orbitDB.open(groupID, { type: 'documents' });
+            this.index.put({ _id: groupID, doc: groupDB.address });
+        }
+        else {
+            groupDB = await this.orbitDB.open(groupDBHash, { type: 'documents' });
+        }
+        return groupDB;
+    }
+    async findGroupDB(groupID) {
+        let groupDBHash = await this.index.get(groupID);
+        return groupDBHash;
     }
 }
 //# sourceMappingURL=CitizenNotesStore.js.map

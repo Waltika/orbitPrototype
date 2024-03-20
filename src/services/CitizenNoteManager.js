@@ -1,14 +1,16 @@
-class CitizenNoteManager {
+export class CitizenNoteManager {
     constructor(store) {
         this.store = store;
     }
-    findCitizenNote(annotated, note) {
+    async findCitizenNote(annotated, note) {
         return this.store.findCitizenNote(annotated, note);
     }
-    addCitizenNote(annotated, note) {
-        this.store.addCitizenNote(annotated, note);
+    async addCitizenNote(annotated, note) {
+        await this.store.addCitizenNote(annotated, note);
     }
     store;
+    async logContent() {
+        await this.store.logContent();
+    }
 }
-export {};
 //# sourceMappingURL=CitizenNoteManager.js.map
