@@ -2,8 +2,8 @@ export class CitizenNoteManager {
     constructor(store) {
         this.store = store;
     }
-    async findCitizenNote(annotated, note) {
-        return this.store.findCitizenNote(annotated, note);
+    async findCitizenNote(annotated) {
+        return this.store.findCitizenNote(annotated);
     }
     async addCitizenNote(annotated, note) {
         await this.store.addCitizenNote(annotated, note);

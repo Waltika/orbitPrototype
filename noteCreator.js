@@ -14,4 +14,4 @@ async function runner() {
 runner().then(r => {
     console.log('done');
 });
-//# sourceMappingURL=test.js.map
+//# sourceMappingURL=noteCreator.js.map

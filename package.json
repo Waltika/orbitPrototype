@@ -14,7 +14,7 @@
   },
   "name": "orbitdb",
   "version": "1.0.0",
-  "main": "test.ts",
+  "main": "noteCreator.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -7,8 +7,8 @@ export class CitizenNoteManager {
         this.store = store;
     }
 
-    async findCitizenNote(annotated: Annotated, note: CitizenNote) {
-        return this.store.findCitizenNote(annotated, note);
+    async findCitizenNote(annotated: Annotated): Promise<CitizenNote | null> {
+        return this.store.findCitizenNote(annotated);
     }
 
     async addCitizenNote(annotated: Annotated, note: CitizenNote) {

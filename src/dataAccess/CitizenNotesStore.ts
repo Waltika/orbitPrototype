@@ -16,7 +16,32 @@ import {Annotated} from "../model/Annotated";
 
 
 export class CitizenNotesStore {
-    private libp2pOptions = {
+    private libp2pOptionsForIndex = {
+        peerDiscovery: [
+            mdns(),
+            bootstrap({
+                    list: [ // A list of bootstrap peers to connect to starting up the node
+                        "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+                        "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+                        "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+                    ]
+                }
+            )
+        ],
+        addresses: {
+            listen: ['/ip4/0.0.0.0/tcp/0']
+        },
+        transports: [
+            tcp()
+        ],
+        connectionEncryption: [noise()],
+        streamMuxers: [yamux()],
+        services: {
+            identify: identify(),
+            pubsub: gossipsub({allowPublishToZeroTopicPeers: true})
+        }
+    };
+    private libp2pOptionsForGroups = {
         peerDiscovery: [
             mdns(),
             bootstrap({
@@ -42,46 +67,68 @@ export class CitizenNotesStore {
         }
     };
     private index: any;
-    private orbitDB: any;
+    private orbitDBForIndex: any;
+    private orbitDBForGroups: any;
 
     async initialize() {
-        const blockstore = new LevelBlockstore(`./CitizenNotes/ipfs:`);
+        const libp2pForIndex = await createLibp2p(this.libp2pOptionsForIndex);
+        const libp2pForGroups = await createLibp2p(this.libp2pOptionsForGroups);
 
-        const libp2p = await createLibp2p(this.libp2pOptions);
+        const blockstoreForIndex = new LevelBlockstore(`./CitizenNotes/ipfs/index`);
+        const ipfsForIndex = await createHelia({libp2p: libp2pForIndex, blockstore: blockstoreForIndex});
 
-        const ipfs = await createHelia({libp2p, blockstore});
+        const blockstoreForGroups = new LevelBlockstore(`./CitizenNotes/ipfs/groups`);
+        const ipfsForGroups = await createHelia({libp2p: libp2pForGroups, blockstore: blockstoreForGroups});
 
-        this.orbitDB = await createOrbitDB({
-            ipfs,
-            id: `CitizenNotes`,
-            directory: `./CitizenNotes`,
+        this.orbitDBForIndex = await createOrbitDB({
+            ipfs: ipfsForIndex,
+            id: `CitizenNotesIndex`,
+            directory: `./CitizenNotes/index`,
         });
-        this.index = await this.orbitDB.open("CitizenNotesIndex", {type: 'documents'}, {
+        this.orbitDBForGroups = await createOrbitDB({
+            ipfs: ipfsForGroups,
+            id: `CitizenNotesGroups`,
+            directory: `./CitizenNotes/groups`,
+        });
+        this.index = await this.orbitDBForIndex.open('CitizenNotesIndex', {type: 'documents'}, {
             AccessController: OrbitDBAccessController({write: ["*"]}),
             replicate: true,
         });
+        process.on("SIGINT", async () => {
+            console.log("exiting...");
+
+            await this.index.close();
+            await this.orbitDBForIndex.stop();
+            await this.orbitDBForGroups.stop();
+            await ipfsForIndex.stop();
+            await ipfsForGroups.stop();
+            process.exit(0);
+        });
+
     }
 
     async logContent() {
         for await (const record of this.index.iterator()) {
             console.log("index element:");
             console.log(record);
-            let groupDB = await this.findOrCreateGroupDB(record.value.doc.toString());
+            let groupDBHash: string = record.value.doc.toString();
+            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'documents'});
             for await (const groupRecord of groupDB.iterator()) {
-                let groupID = groupDB._id;
-                console.log(`groupDB element: for ${groupID}`);
+                let groupKey = groupRecord.key;
+                console.log(`groupDB element: for ${groupKey}`);
                 console.log(groupRecord);
             }
+            groupDB.close();
         }
     }
 
-    async findCitizenNote(annotated: Annotated, note: CitizenNote) {
-        let groupDBHash: string = await this.findGroupDB(annotated.group());
+    async findCitizenNote(annotated: Annotated): Promise<CitizenNote | null> {
+        let groupDBHash: string = await this.findGroupDBHash(annotated.group());
         if (groupDBHash === undefined) {
             return null;
         } else {
-            let groupDB = await this.orbitDB.open(groupDBHash, {type: 'documents'});
-            return groupDB.get(note.reference);
+            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'documents'});
+            return groupDB.get(annotated.key());
         }
 
     }
@@ -89,23 +136,26 @@ export class CitizenNotesStore {
     async addCitizenNote(annotated: Annotated, note: CitizenNote) {
         let groupID = annotated.group();
         let groupDB = await this.findOrCreateGroupDB(groupID);
-        groupDB.put({_id: annotated.key(), doc: note});
+        console.log(`Adding note ${annotated.key()} to group ${groupID}`)
+        await groupDB.put({_id: annotated.key(), doc: note});
+        await groupDB.close();
     }
 
     private async findOrCreateGroupDB(groupID: string) {
         let groupDB;
-        let groupDBHash: string = await this.findGroupDB(groupID);
+        let groupDBHash: string = await this.findGroupDBHash(groupID);
         if (groupDBHash === undefined) {
-            groupDB = await this.orbitDB.open(groupID, {type: 'documents'});
-            this.index.put({_id: groupID, doc: groupDB.address});
+            groupDB = await this.orbitDBForGroups.open(groupID, {type: 'documents'});
+            let address = groupDB.address;
+            console.log(`Registering group ${groupID} at address ${address}`);
+            this.index.put({_id: groupID, doc: address});
         } else {
-            groupDB = await this.orbitDB.open(groupDBHash, {type: 'documents'});
+            groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'documents'});
         }
         return groupDB;
     }
 
-    private async findGroupDB(groupID: string) {
-        let groupDBHash: string = await this.index.get(groupID);
-        return groupDBHash;
+    private async findGroupDBHash(groupID: string) {
+        return await this.index.get(groupID);
     }
 }
