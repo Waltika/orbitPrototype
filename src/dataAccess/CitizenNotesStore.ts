@@ -45,7 +45,7 @@ export class CitizenNotesStore {
     private orbitDB: any;
 
     async initialize() {
-        const blockstore = new LevelBlockstore(`./ipfs/CitizenNotes`);
+        const blockstore = new LevelBlockstore(`./CitizenNotes/ipfs:`);
 
         const libp2p = await createLibp2p(this.libp2pOptions);
 
