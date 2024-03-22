@@ -111,7 +111,7 @@ export class CitizenNotesStore {
         for await (const record of this.index.iterator()) {
             console.log("index element:");
             console.log(record);
-            let groupDBHash: string = record.value.doc.toString();
+            let groupDBHash: string = record.value.toString();
             let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'documents'});
             for await (const groupRecord of groupDB.iterator()) {
                 let groupKey = groupRecord.key;
@@ -138,15 +138,18 @@ export class CitizenNotesStore {
         try {
             let groupDB = await this.findOrCreateGroupDB(groupID);
             console.log(`Adding note ${annotated.key()} to group ${groupID}`);
-            try {
-                await groupDB.del(annotated.key());
-            } catch (e) {
-                console.log(e);
-            }
             await groupDB.put(annotated.key(), note);
             await groupDB.close();
         } catch (e) {
             console.error(e);
+        }
+    }
+
+    private async deleteIfNeeded(groupDB: any, annotated: Annotated) {
+        try {
+            await groupDB.del(annotated.key());
+        } catch (e) {
+            console.log(e);
         }
     }
 

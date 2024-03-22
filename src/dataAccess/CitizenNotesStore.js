@@ -122,17 +122,19 @@ export class CitizenNotesStore {
         try {
             let groupDB = await this.findOrCreateGroupDB(groupID);
             console.log(`Adding note ${annotated.key()} to group ${groupID}`);
-            try {
-                await groupDB.del(annotated.key());
-            }
-            catch (e) {
-                console.log(e);
-            }
             await groupDB.put(annotated.key(), note);
             await groupDB.close();
         }
         catch (e) {
             console.error(e);
+        }
+    }
+    async deleteIfNeeded(groupDB, annotated) {
+        try {
+            await groupDB.del(annotated.key());
+        }
+        catch (e) {
+            console.log(e);
         }
     }
     async findOrCreateGroupDB(groupID) {
