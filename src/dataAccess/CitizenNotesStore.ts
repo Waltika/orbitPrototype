@@ -95,6 +95,11 @@ export class CitizenNotesStore {
             AccessController: OrbitDBAccessController({write: ["*"]}),
             replicate: true,
         });
+        
+        this.index.events.on('replicated', (address: any) => {
+            this.logContent();
+        });
+
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
         process.on("SIGINT", async () => {
@@ -133,7 +138,7 @@ export class CitizenNotesStore {
         if (groupDBHash === undefined) {
             return null;
         } else {
-            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'keyvalue'},{
+            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'keyvalue'}, {
                 AccessController: OrbitDBAccessController({write: ["*"]}),
                 replicate: true,
             });

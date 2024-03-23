@@ -84,6 +84,9 @@ export class CitizenNotesStore {
             AccessController: OrbitDBAccessController({ write: ["*"] }),
             replicate: true,
         });
+        this.index.events.on('replicated', (address) => {
+            this.logContent();
+        });
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
         process.on("SIGINT", async () => {
