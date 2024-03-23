@@ -64,6 +64,7 @@ export class CitizenNotesStore {
     orbitDBForIndex;
     orbitDBForGroups;
     async initialize() {
+        console.log("initialize");
         const libp2pForIndex = await createLibp2p(this.libp2pOptionsForIndex);
         const libp2pForGroups = await createLibp2p(this.libp2pOptionsForGroups);
         const blockstoreForIndex = new LevelBlockstore(`./CitizenNotes/ipfs/index`);
@@ -84,6 +85,7 @@ export class CitizenNotesStore {
             AccessController: OrbitDBAccessController({ write: ["*"] }),
             replicate: true,
         });
+        console.log("Orbit DB Index address:");
         console.log(this.index.address);
         process.on("SIGINT", async () => {
             console.log("exiting...");
