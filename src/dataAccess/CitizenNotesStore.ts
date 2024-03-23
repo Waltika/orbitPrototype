@@ -92,7 +92,7 @@ export class CitizenNotesStore {
             id: `CitizenNotesGroups`,
             directory: `./CitizenNotes/groups`,
         });
-        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAqmun9pYdXnV9fBxhLx8nyMu3HboMWwv6DxNQpjRnW6D2', {type: 'keyvalue'}, {
+        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAn3Wy62ymxjrAjDNNsLjdSvumwyqajeiUQrLqxokrdDoB', {type: 'keyvalue'}, {
             AccessController: OrbitDBAccessController({write: ["*"]}),
             replicate: true,
         });
@@ -116,7 +116,10 @@ export class CitizenNotesStore {
             console.log("index element:");
             console.log(record);
             let groupDBHash: string = record.value.toString();
-            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'documents'});
+            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'keyvalue'}, {
+                AccessController: OrbitDBAccessController({write: ["*"]}),
+                replicate: true,
+            });
             for await (const groupRecord of groupDB.iterator()) {
                 let groupKey = groupRecord.key;
                 console.log(`groupDB element: for ${groupKey}`);
@@ -131,7 +134,10 @@ export class CitizenNotesStore {
         if (groupDBHash === undefined) {
             return null;
         } else {
-            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'documents'});
+            let groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'keyvalue'},{
+                AccessController: OrbitDBAccessController({write: ["*"]}),
+                replicate: true,
+            });
             return groupDB.get(annotated.key());
         }
 
@@ -161,12 +167,19 @@ export class CitizenNotesStore {
         let groupDB;
         let groupDBHash: string = await this.findGroupDBHash(groupID);
         if (groupDBHash === undefined) {
-            groupDB = await this.orbitDBForGroups.open(groupID, {type: 'keyvalue'});
+            groupDB = await this.orbitDBForGroups.open(groupID, {type: 'keyvalue'}, {
+                AccessController: OrbitDBAccessController({write: ["*"]}),
+                replicate: true,
+            });
             let address = groupDB.address;
             console.log(`Registering group ${groupID} at address ${address}`);
             this.index.put(groupID, address);
         } else {
-            groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'keyvalue'});
+            groupDB = await this.orbitDBForGroups.open(groupDBHash, {type: 'keyvalue'}, {
+                    AccessController: OrbitDBAccessController({write: ["*"]}),
+                    replicate: true,
+                }
+            );
         }
         return groupDB;
     }
