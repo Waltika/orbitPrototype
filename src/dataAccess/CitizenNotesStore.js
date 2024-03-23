@@ -43,7 +43,6 @@ export class CitizenNotesStore {
                     "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
                     "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
                     "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-                    '/ip4/0.0.0.0/tcp/0'
                 ]
             })
         ],
@@ -111,7 +110,7 @@ export class CitizenNotesStore {
                 console.log(`groupDB element: for ${groupKey}`);
                 console.log(groupRecord);
             }
-            groupDB.close();
+            //groupDB.close();
         }
     }
     async findCitizenNote(annotated) {
@@ -133,7 +132,7 @@ export class CitizenNotesStore {
             let groupDB = await this.findOrCreateGroupDB(groupID);
             console.log(`Adding note ${annotated.key()} to group ${groupID}`);
             await groupDB.put(annotated.key(), note);
-            await groupDB.close();
+            //await groupDB.close();
         }
         catch (e) {
             console.error(e);
