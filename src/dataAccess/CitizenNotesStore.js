@@ -81,7 +81,7 @@ export class CitizenNotesStore {
             id: `CitizenNotesGroups`,
             directory: `./CitizenNotes/groups`,
         });
-        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAqmun9pYdXnV9fBxhLx8nyMu3HboMWwv6DxNQpjRnW6D2', { type: 'keyvalue' }, {
+        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAz6zDvf9BGzzUb15qfocdDmcWMshoc23thNQvAtwdHAe6', { type: 'keyvalue' }, {
             AccessController: OrbitDBAccessController({ write: ["*"] }),
             replicate: true,
         });
