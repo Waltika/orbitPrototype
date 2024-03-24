@@ -31,7 +31,7 @@ async function runner() {
     }
     while (true) {
         if (process.argv[2] === '0') {
-            await manager.addCitizenNote(new Annotated(new URL("https://www.rollingstone.com/politics/politics-features/election-deniers-refuse-certify-chaos-2024-1234988747/")), new CitizenNote((noteID++).toString(), `This is the ${noteID} note`));
+            await manager.addCitizenNote(new Annotated(new URL(`https://www.${noteID}.com/article/${noteID}`)), new CitizenNote((noteID++).toString(), `This is the ${noteID} note`));
         }
         await sleep(1000);
     }

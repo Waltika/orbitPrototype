@@ -203,10 +203,13 @@ export class CitizenNotesStore {
     }
 
     async clearAll() {
+        let i : number = 0;
         for await (const record of this.index.iterator()) {
             let groupDBHash: string = record.value.toString();
             this.index.del(groupDBHash);
             // The rest will be garbage collected we hope
+            i++;
         }
+        console.log(`Removed ${i} entries from index`);
     }
 }

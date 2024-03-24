@@ -182,11 +182,14 @@ export class CitizenNotesStore {
         return await this.index.get(groupID);
     }
     async clearAll() {
+        let i = 0;
         for await (const record of this.index.iterator()) {
             let groupDBHash = record.value.toString();
             this.index.del(groupDBHash);
             // The rest will be garbage collected we hope
+            i++;
         }
+        console.log(`Removed ${i} entries from index`);
     }
 }
 //# sourceMappingURL=CitizenNotesStore.js.map
