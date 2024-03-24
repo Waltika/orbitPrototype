@@ -10,6 +10,7 @@ import { createHelia } from 'helia';
 import { createOrbitDB, OrbitDBAccessController } from '@orbitdb/core';
 import { createLibp2p } from 'libp2p';
 import { LevelBlockstore } from "blockstore-level";
+import { GroupDBProvider } from "./GroupDBProvider.js";
 export class CitizenNotesStore {
     libp2pOptionsForIndex = {
         peerDiscovery: [
@@ -62,35 +63,55 @@ export class CitizenNotesStore {
     index;
     orbitDBForIndex;
     orbitDBForGroups;
-    async initialize() {
+    groupDBProvider = null;
+    async initialize(processNumber) {
+        let folderName;
+        let indexOrbitID;
+        let groupOrbitID;
+        if (processNumber === '0') {
+            folderName = 'CitizenNotes';
+            indexOrbitID = 'CitizenNotesIndex';
+            groupOrbitID = 'CitizenNotesGroup';
+        }
+        else {
+            folderName = 'CitizenNotes_' + processNumber;
+            indexOrbitID = 'CitizenNotesIndex' + processNumber;
+            groupOrbitID = 'CitizenNotesGroup' + processNumber;
+        }
         console.log("initialize");
         const libp2pForIndex = await createLibp2p(this.libp2pOptionsForIndex);
         const libp2pForGroups = await createLibp2p(this.libp2pOptionsForGroups);
-        const blockstoreForIndex = new LevelBlockstore(`./CitizenNotes/ipfs/index`);
+        const blockstoreForIndex = new LevelBlockstore(`./${folderName}/ipfs/index`);
         const ipfsForIndex = await createHelia({ libp2p: libp2pForIndex, blockstore: blockstoreForIndex });
-        const blockstoreForGroups = new LevelBlockstore(`./CitizenNotes/ipfs/groups`);
+        const blockstoreForGroups = new LevelBlockstore(`./${folderName}/ipfs/groups`);
         const ipfsForGroups = await createHelia({ libp2p: libp2pForGroups, blockstore: blockstoreForGroups });
         this.orbitDBForIndex = await createOrbitDB({
             ipfs: ipfsForIndex,
-            id: `CitizenNotesIndex`,
-            directory: `./CitizenNotes/index`,
+            id: indexOrbitID,
+            directory: `./${folderName}/index`,
         });
         this.orbitDBForGroups = await createOrbitDB({
             ipfs: ipfsForGroups,
-            id: `CitizenNotesGroups`,
-            directory: `./CitizenNotes/groups`,
+            id: groupOrbitID,
+            directory: `./${folderName}/groups`,
         });
-        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAn3Wy62ymxjrAjDNNsLjdSvumwyqajeiUQrLqxokrdDoB', { type: 'keyvalue' }, {
+        this.groupDBProvider = new GroupDBProvider(this.orbitDBForGroups);
+        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAqChd4QQomfxit8JEHJ1GsczkQrDGeyxDfNy41iwKgqf6', {
+            type: 'keyvalue'
+        }, {
             AccessController: OrbitDBAccessController({ write: ["*"] }),
             replicate: true,
         });
-        this.index.events.on('replicated', (address) => {
-            this.logContent();
+        this.index.events.on('update', (entry) => {
+            console.log('Index Change:');
+            console.log(entry.payload);
         });
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
         process.on("SIGINT", async () => {
+            await this.logContent();
             console.log("exiting...");
+            await this.groupDBProvider?.closeAll();
             await this.index.close();
             await this.orbitDBForIndex.stop();
             await this.orbitDBForGroups.stop();
@@ -100,20 +121,18 @@ export class CitizenNotesStore {
         });
     }
     async logContent() {
+        console.log("index DB:");
         for await (const record of this.index.iterator()) {
             console.log("index element:");
             console.log(record);
             let groupDBHash = record.value.toString();
-            let groupDB = await this.orbitDBForGroups.open(groupDBHash, { type: 'keyvalue' }, {
-                AccessController: OrbitDBAccessController({ write: ["*"] }),
-                replicate: true,
-            });
+            let groupDB = await this.groupDBProvider?.getGroupDB(groupDBHash);
+            console.log("group DB:");
             for await (const groupRecord of groupDB.iterator()) {
                 let groupKey = groupRecord.key;
                 console.log(`groupDB element: for ${groupKey}`);
                 console.log(groupRecord);
             }
-            groupDB.close();
         }
     }
     async findCitizenNote(annotated) {
@@ -122,10 +141,7 @@ export class CitizenNotesStore {
             return null;
         }
         else {
-            let groupDB = await this.orbitDBForGroups.open(groupDBHash, { type: 'keyvalue' }, {
-                AccessController: OrbitDBAccessController({ write: ["*"] }),
-                replicate: true,
-            });
+            let groupDB = await this.groupDBProvider?.getGroupDB(groupDBHash);
             return groupDB.get(annotated.key());
         }
     }
@@ -133,9 +149,8 @@ export class CitizenNotesStore {
         let groupID = annotated.group();
         try {
             let groupDB = await this.findOrCreateGroupDB(groupID);
-            console.log(`Adding note ${annotated.key()} to group ${groupID}`);
+            console.log(`Adding note ${note.reference} to ${annotated.key()} (group ${groupID})`);
             await groupDB.put(annotated.key(), note);
-            await groupDB.close();
         }
         catch (e) {
             console.error(e);
@@ -153,24 +168,25 @@ export class CitizenNotesStore {
         let groupDB;
         let groupDBHash = await this.findGroupDBHash(groupID);
         if (groupDBHash === undefined) {
-            groupDB = await this.orbitDBForGroups.open(groupID, { type: 'keyvalue' }, {
-                AccessController: OrbitDBAccessController({ write: ["*"] }),
-                replicate: true,
-            });
+            groupDB = await this.groupDBProvider?.createGroupDB(groupID);
             let address = groupDB.address;
             console.log(`Registering group ${groupID} at address ${address}`);
             this.index.put(groupID, address);
         }
         else {
-            groupDB = await this.orbitDBForGroups.open(groupDBHash, { type: 'keyvalue' }, {
-                AccessController: OrbitDBAccessController({ write: ["*"] }),
-                replicate: true,
-            });
+            groupDB = await this.groupDBProvider?.getGroupDB(groupDBHash);
         }
         return groupDB;
     }
     async findGroupDBHash(groupID) {
         return await this.index.get(groupID);
+    }
+    async clearAll() {
+        for await (const record of this.index.iterator()) {
+            let groupDBHash = record.value.toString();
+            this.index.del(groupDBHash);
+            // The rest will be garbage collected we hope
+        }
     }
 }
 //# sourceMappingURL=CitizenNotesStore.js.map

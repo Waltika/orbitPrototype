@@ -20,4 +20,7 @@ export class CitizenNoteManager {
     async logContent() {
         await this.store.logContent();
     }
+    async clearAll(){
+        await this.store.clearAll();
+    }
 }
