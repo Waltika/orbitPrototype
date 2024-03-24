@@ -109,7 +109,7 @@ export class CitizenNotesStore {
 
         this.groupDBProvider = new GroupDBProvider(this.orbitDBForGroups);
 
-        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAqChd4QQomfxit8JEHJ1GsczkQrDGeyxDfNy41iwKgqf6', {
+        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAtRYGYACCPsyAuMCQ7EpikYtiAqNpb22cRn9EfYezEwVN', {
             type: 'keyvalue'
         }, {
             AccessController: OrbitDBAccessController({write: ["*"]}),
