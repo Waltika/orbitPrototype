@@ -33,7 +33,7 @@ async function runner() {
         if (process.argv[2] === '0') {
             await manager.addCitizenNote(new Annotated(new URL(`https://www.${noteID}.com/article/${noteID}`)), new CitizenNote((noteID++).toString(), `This is the ${noteID} note`));
         }
-        await sleep(1000);
+        await sleep(5000);
     }
 }
 runner().then(r => {

@@ -36,6 +36,10 @@ export class GroupDBProvider {
             console.log(entry.payload);
         });
 
+        result.events.on('close', () => {
+            console.log(`Closing Group DB:${result.address}`);
+        });
+
         return result;
     }
 

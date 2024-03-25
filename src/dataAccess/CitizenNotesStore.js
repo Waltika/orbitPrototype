@@ -1,10 +1,9 @@
 import { tcp } from '@libp2p/tcp';
 import { identify } from '@libp2p/identify';
-import { bootstrap } from '@libp2p/bootstrap';
+import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
-import { mdns } from '@libp2p/mdns';
 import { createHelia } from 'helia';
 // @ts-ignore
 import { createOrbitDB, OrbitDBAccessController } from '@orbitdb/core';
@@ -13,19 +12,7 @@ import { LevelBlockstore } from "blockstore-level";
 import { GroupDBProvider } from "./GroupDBProvider.js";
 export class CitizenNotesStore {
     libp2pOptionsForIndex = {
-        peerDiscovery: [
-            mdns(),
-            bootstrap({
-                list: [
-                    "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-                    "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-                    "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-                ]
-            })
-        ],
-        addresses: {
-            listen: ['/ip4/0.0.0.0/tcp/0']
-        },
+        peerDiscovery: [pubsubPeerDiscovery()],
         transports: [
             tcp()
         ],
@@ -37,19 +24,7 @@ export class CitizenNotesStore {
         }
     };
     libp2pOptionsForGroups = {
-        peerDiscovery: [
-            mdns(),
-            bootstrap({
-                list: [
-                    "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-                    "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-                    "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-                ]
-            })
-        ],
-        addresses: {
-            listen: ['/ip4/0.0.0.0/tcp/0']
-        },
+        peerDiscovery: [pubsubPeerDiscovery()],
         transports: [
             tcp()
         ],
@@ -109,7 +84,6 @@ export class CitizenNotesStore {
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
         process.on("SIGINT", async () => {
-            await this.logContent();
             console.log("exiting...");
             await this.groupDBProvider?.closeAll();
             await this.index.close();

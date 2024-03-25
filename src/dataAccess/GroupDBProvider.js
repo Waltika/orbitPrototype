@@ -31,6 +31,9 @@ export class GroupDBProvider {
             console.log('Group DB Change:');
             console.log(entry.payload);
         });
+        result.events.on('close', () => {
+            console.log(`Closing Group DB:${result.address}`);
+        });
         return result;
     }
     async closeAll() {
