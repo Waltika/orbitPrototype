@@ -20,7 +20,13 @@ export class CitizenNoteManager {
     async logContent() {
         await this.store.logContent();
     }
-    async clearAll(){
+
+    async clearAll() {
         await this.store.clearAll();
+    }
+
+    async stop() {
+        console.log("Stopping CitizenNotesManager");
+        await this.store.stop();
     }
 }

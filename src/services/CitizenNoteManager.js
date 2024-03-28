@@ -15,5 +15,9 @@ export class CitizenNoteManager {
     async clearAll() {
         await this.store.clearAll();
     }
+    async stop() {
+        console.log("Stopping CitizenNotesManager");
+        await this.store.stop();
+    }
 }
 //# sourceMappingURL=CitizenNoteManager.js.map

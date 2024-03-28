@@ -3,18 +3,24 @@ import { CitizenNotesStore } from "./src/dataAccess/CitizenNotesStore.js";
 import { CitizenNote } from "./src/model/CitizenNote.js";
 import { Annotated } from "./src/model/Annotated.js";
 import { CitizenNoteManager } from "./src/services/CitizenNoteManager.js";
-let store = new CitizenNotesStore();
-var exports = {};
+let store = new CitizenNotesStore('/orbitdb/zdpuArYmbh9oKKuL3nJxMwEskqHxT2YFaLQCV8U3FT1kUhdmz');
 let noteID = 1;
-let manager = null;
 function sleep(ms) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });
 }
 async function runner() {
+    let running = true;
+    let manager = new CitizenNoteManager(store);
+    process.on("SIGINT", async () => {
+        if (running) {
+            console.log("SIGINT received");
+            running = false;
+            await manager.stop();
+        }
+    });
     await store.initialize(process.argv[2]);
-    manager = new CitizenNoteManager(store);
     if (process.argv[2] === '0') {
         await manager.clearAll();
         await manager.addCitizenNote(new Annotated(new URL("https://www.nytimes.com/live/2024/03/18/world/israel-hamas-war-gaza-news?usename='Waltika'")), new CitizenNote((noteID++).toString(), "This is a note"));
@@ -29,9 +35,9 @@ async function runner() {
     else {
         await manager.logContent();
     }
-    while (true) {
+    while (running) {
         if (process.argv[2] === '0') {
-            await manager.addCitizenNote(new Annotated(new URL(`https://www.${noteID}.com/article/${noteID}`)), new CitizenNote((noteID++).toString(), `This is the ${noteID} note`));
+            await manager.addCitizenNote(new Annotated(new URL(`https://www.${noteID}.com/article/${noteID}`)), new CitizenNote((noteID).toString(), `This is the ${noteID++} note`));
         }
         await sleep(5000);
     }

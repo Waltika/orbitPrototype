@@ -31,6 +31,7 @@ export class GroupDBProvider {
             });
             this.map.set(result.address, result);
         }
+        result.events.setMaxListeners(0);
         result.events.on('update', (entry: any) => {
             console.log('Group DB Change:');
             console.log(entry.payload);
