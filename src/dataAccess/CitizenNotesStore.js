@@ -1,48 +1,11 @@
-import { tcp } from '@libp2p/tcp';
-import { webSockets } from '@libp2p/websockets';
-import { webTransport } from '@libp2p/webtransport';
-import { webRTC } from '@libp2p/webrtc';
-import { identify } from '@libp2p/identify';
-import { bootstrap } from '@libp2p/bootstrap';
-import { kadDHT } from '@libp2p/kad-dht';
-import { gossipsub } from '@chainsafe/libp2p-gossipsub';
-import { noise } from '@chainsafe/libp2p-noise';
-import { yamux } from '@chainsafe/libp2p-yamux';
-import { mdns } from '@libp2p/mdns';
 import { createHelia } from 'helia';
 // @ts-ignore
 import { createOrbitDB, OrbitDBAccessController } from '@orbitdb/core';
 import { createLibp2p } from 'libp2p';
 import { LevelBlockstore } from "blockstore-level";
 import { GroupDBProvider } from "./GroupDBProvider.js";
+import { CitizenNotesConfig } from "../config/CitizenNotesConfig.js";
 export class CitizenNotesStore {
-    libp2pOptions = {
-        peerDiscovery: [bootstrap({
-                list: [
-                    "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-                    "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-                    "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-                ],
-                timeout: 1000,
-                tagName: 'bootstrap',
-                tagValue: 50,
-                tagTTL: 120000 // in ms
-            }),
-            mdns()],
-        addresses: {
-            listen: ['/ip4/0.0.0.0/tcp/0']
-        },
-        transports: [tcp(), webSockets(), webTransport(), webRTC()],
-        connectionEncryption: [noise()],
-        streamMuxers: [yamux()],
-        services: {
-            dht: kadDHT({
-            // DHT options
-            }),
-            identify: identify(),
-            pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, emitSelf: true })
-        }
-    };
     index;
     orbitDBForIndex;
     orbitDBForGroups;
@@ -67,7 +30,7 @@ export class CitizenNotesStore {
             groupOrbitID = 'CitizenNotesGroup' + processNumber;
         }
         console.log("initialize");
-        const libp2p = await createLibp2p(this.libp2pOptions);
+        const libp2p = await createLibp2p(CitizenNotesConfig.libp2pOptions);
         const blockstore = new LevelBlockstore(`./${folderName}/ipfs/all`);
         this.ipfs = await createHelia({ libp2p: libp2p, blockstore: blockstore });
         this.orbitDBForIndex = await createOrbitDB({
