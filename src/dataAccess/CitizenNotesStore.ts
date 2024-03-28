@@ -2,10 +2,11 @@ import {CitizenNote} from "../model/CitizenNote";
 
 import {tcp} from '@libp2p/tcp';
 import {identify} from '@libp2p/identify';
-import {pubsubPeerDiscovery} from '@libp2p/pubsub-peer-discovery'
+import {bootstrap} from '@libp2p/bootstrap';
 import {gossipsub} from '@chainsafe/libp2p-gossipsub'
 import {noise} from '@chainsafe/libp2p-noise'
 import {yamux} from '@chainsafe/libp2p-yamux'
+import {mdns} from '@libp2p/mdns'
 import {createHelia} from 'helia'
 // @ts-ignore
 import {createOrbitDB, OrbitDBAccessController} from '@orbitdb/core'
@@ -16,8 +17,21 @@ import {GroupDBProvider} from "./GroupDBProvider.js";
 
 
 export class CitizenNotesStore {
-    private libp2pOptionsForIndex = {
-        peerDiscovery: [pubsubPeerDiscovery()],
+    private libp2pOptions = {
+        peerDiscovery: [
+            mdns(),
+            bootstrap({
+                    list: [ // A list of bootstrap peers to connect to starting up the node
+                        "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+                        "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+                        "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+                    ]
+                }
+            )
+        ],
+        addresses: {
+            listen: ['/ip4/0.0.0.0/tcp/0']
+        },
         transports: [
             tcp()
         ],
@@ -25,21 +39,10 @@ export class CitizenNotesStore {
         streamMuxers: [yamux()],
         services: {
             identify: identify(),
-            pubsub: gossipsub({allowPublishToZeroTopicPeers: true})
+            pubsub: gossipsub({allowPublishToZeroTopicPeers: true, emitSelf: true})
         }
     };
-    private libp2pOptionsForGroups = {
-        peerDiscovery: [pubsubPeerDiscovery()],
-        transports: [
-            tcp()
-        ],
-        connectionEncryption: [noise()],
-        streamMuxers: [yamux()],
-        services: {
-            identify: identify(),
-            pubsub: gossipsub({allowPublishToZeroTopicPeers: true})
-        }
-    };
+
     private index: any;
     private orbitDBForIndex: any;
     private orbitDBForGroups: any;
@@ -60,29 +63,26 @@ export class CitizenNotesStore {
         }
 
         console.log("initialize");
-        const libp2pForIndex = await createLibp2p(this.libp2pOptionsForIndex);
-        const libp2pForGroups = await createLibp2p(this.libp2pOptionsForGroups);
+        const libp2p = await createLibp2p(this.libp2pOptions);
 
-        const blockstoreForIndex = new LevelBlockstore(`./${folderName}/ipfs/index`);
-        const ipfsForIndex = await createHelia({libp2p: libp2pForIndex, blockstore: blockstoreForIndex});
+        const blockstore = new LevelBlockstore(`./${folderName}/ipfs/all`);
+        const ipfs = await createHelia({libp2p: libp2p, blockstore: blockstore});
 
-        const blockstoreForGroups = new LevelBlockstore(`./${folderName}/ipfs/groups`);
-        const ipfsForGroups = await createHelia({libp2p: libp2pForGroups, blockstore: blockstoreForGroups});
 
         this.orbitDBForIndex = await createOrbitDB({
-            ipfs: ipfsForIndex,
+            ipfs: ipfs,
             id: indexOrbitID,
             directory: `./${folderName}/index`,
         });
         this.orbitDBForGroups = await createOrbitDB({
-            ipfs: ipfsForGroups,
+            ipfs: ipfs,
             id: groupOrbitID,
             directory: `./${folderName}/groups`,
         });
 
         this.groupDBProvider = new GroupDBProvider(this.orbitDBForGroups);
 
-        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAtRYGYACCPsyAuMCQ7EpikYtiAqNpb22cRn9EfYezEwVN', {
+        this.index = await this.orbitDBForIndex.open('/orbitdb/zdpuAqQPmjnCQ556NKJbc7fe6D2tYjRDxkXnBSqj78iPmP45t', {
             type: 'keyvalue'
         }, {
             AccessController: OrbitDBAccessController({write: ["*"]}),
@@ -97,13 +97,13 @@ export class CitizenNotesStore {
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
         process.on("SIGINT", async () => {
+            await this.logContent();
             console.log("exiting...");
             await this.groupDBProvider?.closeAll();
             await this.index.close();
             await this.orbitDBForIndex.stop();
             await this.orbitDBForGroups.stop();
-            await ipfsForIndex.stop();
-            await ipfsForGroups.stop();
+            await ipfs.stop();
             process.exit(0);
         });
 
