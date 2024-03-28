@@ -18,10 +18,13 @@ async function runner() {
     let running: boolean = true;
     let manager = new CitizenNoteManager(store);
 
+    console.log('Registering SIGINT handler');
     process.on("SIGINT", async () => {
         if (running) {
-            console.log("SIGINT received");
             running = false;
+            manager.suspendFunction();
+            await manager.logContent();
+            console.log("SIGINT received");
             await manager.stop();
         }
     });
@@ -35,9 +38,6 @@ async function runner() {
         await manager.addCitizenNote(new Annotated(new URL("https://www.rollingstone.com/politics/politics-features/election-deniers-refuse-certify-chaos-2024-1234988747/")), new CitizenNote((noteID++).toString(), "This is a third note"));
         await manager.addCitizenNote(new Annotated(new URL("https://www.rollingstone.com/politics/politics-features/election-deniers-refuse-certify-chaos-2024-1234988747/")), new CitizenNote((noteID++).toString(), "This is a fourth note"));
         await manager.addCitizenNote(new Annotated(new URL("https://www.rollingstone.com/politics/politics-features/election-deniers-refuse-certify-chaos-2024-1234988747/")), new CitizenNote((noteID++).toString(), "This is a fifth note"));
-        await manager.logContent();
-    } else {
-        await manager.logContent();
     }
 
     while (running) {

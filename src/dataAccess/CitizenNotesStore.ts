@@ -9,6 +9,7 @@ import {GroupDBProvider} from "./GroupDBProvider.js";
 import {CitizenNotesConfig} from "../config/CitizenNotesConfig.js";
 
 export class CitizenNotesStore {
+    private logOnEvent: boolean = true;
     private index: any;
     private orbitDBForIndex: any;
     private orbitDBForGroups: any;
@@ -62,13 +63,21 @@ export class CitizenNotesStore {
             replicate: true,
         });
 
+        console.log('Registering update callback on Index');
         this.index.events.on('update', (entry: any) => {
-            console.log('Index Change:');
-            console.log(entry.payload);
+            if (this.logOnEvent) {
+                console.log('Index Change:');
+                console.log(entry.payload);
+            }
         });
 
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
+    }
+
+    public disableLoggingOnEvent() {
+        this.logOnEvent = false;
+        this.groupDBProvider?.disableLogOnEvent();
     }
 
     public async stop() {
@@ -82,16 +91,13 @@ export class CitizenNotesStore {
     }
 
     async logContent() {
-        console.log("index DB:");
         for await (const record of this.index.iterator()) {
-            console.log("index element:");
             console.log(record);
             let groupDBHash: string = record.value.toString();
             let groupDB = await this.groupDBProvider?.getGroupDB(groupDBHash);
-            console.log("group DB:");
             for await (const groupRecord of groupDB.iterator()) {
                 let groupKey = groupRecord.key;
-                console.log(`groupDB element: for ${groupKey}`);
+                console.log(`Group Record for ${groupKey}`);
                 console.log(groupRecord);
             }
         }

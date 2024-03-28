@@ -4,6 +4,7 @@ import {OrbitDBAccessController} from '@orbitdb/core'
 export class GroupDBProvider {
     private map = new Map<string, any>;
     private orbitDBInstance: any;
+    private logOnEvent: boolean = true;
 
     constructor(orbitDBInstance: any) {
         this.orbitDBInstance = orbitDBInstance;
@@ -16,10 +17,32 @@ export class GroupDBProvider {
             AccessController: OrbitDBAccessController({write: ["*"]}),
             replicate: true,
         });
+        this.registerHandlers(result);
+
         this.map.set(result.address, result);
         return result;
     }
 
+    private registerHandlers(result: any) {
+        console.log('Registering update / close callbacks on Group DB');
+        result.events.on('update', (entry: any) => {
+            if (this.logOnEvent) {
+                console.log('Group DB Change:');
+                console.log(entry.payload);
+            }
+        });
+
+        result.events.on('close', () => {
+            if (this.logOnEvent) {
+                console.log(`Closing Group DB:${result.address}`);
+            }
+        });
+    }
+
+    public disableLogOnEvent()
+    {
+        this.logOnEvent = false;
+    }
     async getGroupDB(hash: string): Promise<any> {
         let result = this.map.get(hash);
         if (result === undefined) {
@@ -29,15 +52,7 @@ export class GroupDBProvider {
                 AccessController: OrbitDBAccessController({write: ["*"]}),
                 replicate: true,
             });
-            result.events.on('update', (entry: any) => {
-                console.log('Group DB Change:');
-                console.log(entry.payload);
-            });
-
-            result.events.on('close', () => {
-                console.log(`Closing Group DB:${result.address}`);
-            });
-
+            this.registerHandlers(result);
             this.map.set(result.address, result);
         }
         return result;

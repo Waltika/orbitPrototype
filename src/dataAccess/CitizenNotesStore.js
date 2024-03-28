@@ -6,6 +6,7 @@ import { LevelBlockstore } from "blockstore-level";
 import { GroupDBProvider } from "./GroupDBProvider.js";
 import { CitizenNotesConfig } from "../config/CitizenNotesConfig.js";
 export class CitizenNotesStore {
+    logOnEvent = true;
     index;
     orbitDBForIndex;
     orbitDBForGroups;
@@ -50,12 +51,19 @@ export class CitizenNotesStore {
             AccessController: OrbitDBAccessController({ write: ["*"] }),
             replicate: true,
         });
+        console.log('Registering update callback on Index');
         this.index.events.on('update', (entry) => {
-            console.log('Index Change:');
-            console.log(entry.payload);
+            if (this.logOnEvent) {
+                console.log('Index Change:');
+                console.log(entry.payload);
+            }
         });
         console.log("Orbit DB Index address:");
         console.log(this.index.address);
+    }
+    disableLoggingOnEvent() {
+        this.logOnEvent = false;
+        this.groupDBProvider?.disableLogOnEvent();
     }
     async stop() {
         console.log("stopping CitizenNotesStore...");
@@ -67,16 +75,13 @@ export class CitizenNotesStore {
         process.exit(0);
     }
     async logContent() {
-        console.log("index DB:");
         for await (const record of this.index.iterator()) {
-            console.log("index element:");
             console.log(record);
             let groupDBHash = record.value.toString();
             let groupDB = await this.groupDBProvider?.getGroupDB(groupDBHash);
-            console.log("group DB:");
             for await (const groupRecord of groupDB.iterator()) {
                 let groupKey = groupRecord.key;
-                console.log(`groupDB element: for ${groupKey}`);
+                console.log(`Group Record for ${groupKey}`);
                 console.log(groupRecord);
             }
         }
