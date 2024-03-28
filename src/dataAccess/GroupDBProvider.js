@@ -25,16 +25,15 @@ export class GroupDBProvider {
                 AccessController: OrbitDBAccessController({ write: ["*"] }),
                 replicate: true,
             });
+            result.events.on('update', (entry) => {
+                console.log('Group DB Change:');
+                console.log(entry.payload);
+            });
+            result.events.on('close', () => {
+                console.log(`Closing Group DB:${result.address}`);
+            });
             this.map.set(result.address, result);
         }
-        result.events.setMaxListeners(0);
-        result.events.on('update', (entry) => {
-            console.log('Group DB Change:');
-            console.log(entry.payload);
-        });
-        result.events.on('close', () => {
-            console.log(`Closing Group DB:${result.address}`);
-        });
         return result;
     }
     async closeAll() {
