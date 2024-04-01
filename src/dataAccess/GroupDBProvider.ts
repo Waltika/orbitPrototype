@@ -11,23 +11,36 @@ export class GroupDBProvider {
     }
 
     async createGroupDB(groupID: string): Promise<any> {
-        let result = await this.orbitDBInstance.open(groupID, {
-            type: 'keyvalue'
-        }, {
-            AccessController: OrbitDBAccessController({write: ["*"]}),
-            replicate: true,
-        });
-        this.registerHandlers(result);
+        console.log(`creating Group DB for ID ${groupID}`);
+        let result = null;
+        try {
+            result = await this.orbitDBInstance.open(groupID, {
+                type: 'keyvalue'
+            }, {
+                AccessController: OrbitDBAccessController({write: ["*"]}),
+                replicate: true,
+            });
+            this.registerHandlers(result);
 
-        this.map.set(result.address, result);
+            this.map.set(result.address, result);
+        } catch (e) {
+            console.log(`Group DB with ID ${groupID} couldn't be created`);
+        }
         return result;
     }
 
     private registerHandlers(result: any) {
-        console.log('Registering update / close callbacks on Group DB');
+        console.log('Registering update / delete/ close callbacks on Group DB');
         result.events.on('update', (entry: any) => {
             if (this.logOnEvent) {
-                console.log('Group DB Change:');
+                console.log('Group DB Update:');
+                console.log(entry.payload);
+            }
+        });
+
+        result.events.on('delete', (entry: any) => {
+            if (this.logOnEvent) {
+                console.log('Group DB Delete:');
                 console.log(entry.payload);
             }
         });
@@ -39,21 +52,26 @@ export class GroupDBProvider {
         });
     }
 
-    public disableLogOnEvent()
-    {
+    public disableLogOnEvent() {
         this.logOnEvent = false;
     }
+
     async getGroupDB(hash: string): Promise<any> {
         let result = this.map.get(hash);
         if (result === undefined) {
-            result = await this.orbitDBInstance.open(hash, {
-                type: 'keyvalue'
-            }, {
-                AccessController: OrbitDBAccessController({write: ["*"]}),
-                replicate: true,
-            });
-            this.registerHandlers(result);
-            this.map.set(result.address, result);
+            try {
+                result = await this.orbitDBInstance.open(hash, {
+                    type: 'keyvalue'
+                }, {
+                    AccessController: OrbitDBAccessController({write: ["*"]}),
+                    replicate: true,
+                });
+                this.registerHandlers(result);
+                this.map.set(result.address, result);
+            } catch (e) {
+                console.log(`Group DB with hash ${hash} couldn't be opened`);
+            }
+            console.log(`Returning Group DB ${result}`);
         }
         return result;
     }

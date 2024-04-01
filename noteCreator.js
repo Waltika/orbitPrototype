@@ -3,7 +3,7 @@ import { CitizenNotesStore } from "./src/dataAccess/CitizenNotesStore.js";
 import { CitizenNote } from "./src/model/CitizenNote.js";
 import { Annotated } from "./src/model/Annotated.js";
 import { CitizenNoteManager } from "./src/services/CitizenNoteManager.js";
-let store = new CitizenNotesStore('/orbitdb/zdpuArYmbh9oKKuL3nJxMwEskqHxT2YFaLQCV8U3FT1kUhdmz');
+let store = new CitizenNotesStore('/orbitdb/zdpuAtEe9qgiUpsMaQfTSBgpTwhnzvNZvwpFvwvGPkSUE6A1f');
 let noteID = 1;
 function sleep(ms) {
     return new Promise((resolve) => {
@@ -34,6 +34,7 @@ async function runner() {
         await manager.addCitizenNote(new Annotated(new URL("https://www.rollingstone.com/politics/politics-features/election-deniers-refuse-certify-chaos-2024-1234988747/")), new CitizenNote((noteID++).toString(), "This is a fourth note"));
         await manager.addCitizenNote(new Annotated(new URL("https://www.rollingstone.com/politics/politics-features/election-deniers-refuse-certify-chaos-2024-1234988747/")), new CitizenNote((noteID++).toString(), "This is a fifth note"));
     }
+    await manager.logContent();
     while (running) {
         if (process.argv[2] === '0') {
             await manager.addCitizenNote(new Annotated(new URL(`https://www.${noteID}.com/article/${noteID}`)), new CitizenNote((noteID).toString(), `This is the ${noteID++} note`));
