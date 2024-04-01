@@ -3,7 +3,7 @@ import { CitizenNotesStore } from "./src/dataAccess/CitizenNotesStore.js";
 import { CitizenNote } from "./src/model/CitizenNote.js";
 import { Annotated } from "./src/model/Annotated.js";
 import { CitizenNoteManager } from "./src/services/CitizenNoteManager.js";
-let store = new CitizenNotesStore('/orbitdb/zdpuAtEe9qgiUpsMaQfTSBgpTwhnzvNZvwpFvwvGPkSUE6A1f');
+let store = new CitizenNotesStore('/orbitdb/zdpuAqTHc7Rk77vumfajL94udky9qKdS1kUdT7umGKBj1Famc');
 let noteID = 1;
 function sleep(ms) {
     return new Promise((resolve) => {
