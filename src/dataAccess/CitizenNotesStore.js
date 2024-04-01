@@ -7,7 +7,7 @@ import { GroupDBProvider } from "./GroupDBProvider.js";
 import { CitizenNotesConfig } from "../config/CitizenNotesConfig.js";
 export class CitizenNotesStore {
     logOnEvent = true;
-    index;
+    index = undefined;
     orbitDBForIndex;
     orbitDBForGroups;
     groupDBProvider = null;
@@ -45,12 +45,19 @@ export class CitizenNotesStore {
             directory: `./${folderName}/groups`,
         });
         this.groupDBProvider = new GroupDBProvider(this.orbitDBForGroups);
-        this.index = await this.orbitDBForIndex.open(this.name, {
-            type: 'keyvalue'
-        }, {
-            AccessController: OrbitDBAccessController({ write: ["*"] }),
-            replicate: true,
-        });
+        while (this.index == undefined) {
+            try {
+                this.index = await this.orbitDBForIndex.open(this.name, {
+                    type: 'keyvalue'
+                }, {
+                    AccessController: OrbitDBAccessController({ write: ["*"] }),
+                    replicate: true,
+                });
+            }
+            catch (e) {
+                console.log('Could not open index DB, retrying');
+            }
+        }
         console.log('Registering update callback on Index');
         this.index.events.on('update', (entry) => {
             if (this.logOnEvent) {
