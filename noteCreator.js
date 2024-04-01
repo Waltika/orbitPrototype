@@ -3,12 +3,18 @@ import { CitizenNotesStore } from "./src/dataAccess/CitizenNotesStore.js";
 import { CitizenNote } from "./src/model/CitizenNote.js";
 import { Annotated } from "./src/model/Annotated.js";
 import { CitizenNoteManager } from "./src/services/CitizenNoteManager.js";
-let store = new CitizenNotesStore('/orbitdb/zdpuAqTHc7Rk77vumfajL94udky9qKdS1kUdT7umGKBj1Famc');
+let store = new CitizenNotesStore(getOrbitDBAddress());
 let noteID = 1;
 function sleep(ms) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });
+}
+function getProcessNumber() {
+    return process.argv[2];
+}
+function getOrbitDBAddress() {
+    return process.argv[3];
 }
 async function runner() {
     let running = true;
@@ -23,8 +29,8 @@ async function runner() {
             await manager.stop();
         }
     });
-    await store.initialize(process.argv[2]);
-    if (process.argv[2] === '0') {
+    await store.initialize(getProcessNumber());
+    if (getProcessNumber() === '0') {
         await manager.clearAll();
         await manager.addCitizenNote(new Annotated(new URL("https://www.nytimes.com/live/2024/03/18/world/israel-hamas-war-gaza-news?usename='Waltika'")), new CitizenNote((noteID++).toString(), "This is a note"));
         // insert a second time to see what happens.
@@ -36,7 +42,7 @@ async function runner() {
     }
     await manager.logContent();
     while (running) {
-        if (process.argv[2] === '0') {
+        if (getProcessNumber() === '0') {
             await manager.addCitizenNote(new Annotated(new URL(`https://www.${noteID}.com/article/${noteID}`)), new CitizenNote((noteID).toString(), `This is the ${noteID++} note`));
         }
         await sleep(5000);
